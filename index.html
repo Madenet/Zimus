@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Domain Acquired</title>
+  <style>
+    :root{
+      --card-bg: rgba(0,0,0,.45);
+      --accent: #ffe47a;
+      --text:#fff;
+      --radius:14px;
+    }
+    html,body{height:100%;margin:0}
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background:linear-gradient(120deg,#008cffd7,#00aa77d7);
+      background-size:300% 300%;
+      animation:moveBG 9s ease-in-out infinite alternate;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      user-select:none; /* basic selection block */
+    }
+    @keyframes moveBG{0%{background-position:0% 50%}100%{background-position:100% 50%}}
+    .card{
+      width:92%;
+      max-width:560px;
+      padding:34px;
+      border-radius:var(--radius);
+      text-align:center;
+      background:var(--card-bg);
+      box-shadow:0 12px 40px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+    }
+    .icon{font-size:48px;display:block;margin-bottom:10px}
+    h1{margin:6px 0 8px;font-size:1.6rem;letter-spacing:.2px}
+    p.lead{margin:0 0 18px;color:rgba(255,255,255,.92);font-size:1rem}
+    .contact{margin-top:12px;font-size:1rem;line-height:1.6}
+    a.link{
+      color:var(--text);
+      text-decoration:none;
+      font-weight:600;
+      display:inline-block;
+      transition:color .18s ease,transform .12s ease;
+    }
+    a.link:hover{color:var(--accent);transform:translateY(-2px)}
+    .note{margin-top:14px;font-size:.85rem;color:rgba(255,255,255,.75)}
+    /* small screens: allow selection of links */
+    @media (max-width:420px){
+      body{padding:12px}
+      .card{padding:22px}
+    }
+    /* allow user to select links specifically */
+    .contact a{user-select:text}
+  </style>
+</head>
+<body>
+  <main class="card" aria-labelledby="title">
+    <span class="icon" aria-hidden="true">🌐</span>
+    <h1 id="title">This Domain Has Been Acquired</h1>
+    <p class="lead">If you wish to buy or inquire about this domain, please contact the owner below.</p>
+
+    <div class="contact" id="contactArea" aria-live="polite">
+      <!-- contact inserted by JS -->
+      <em>Loading contact details…</em>
+    </div>
+
+    <div class="note">Note: contact is revealed at runtime to reduce automated scraping.</div>
+  </main>
+
+  <script>
+    /*
+      Protection/obfuscation measures:
+      - Contact info stored as Base64 strings and decoded at runtime.
+      - Right-click, common dev shortcuts and copy prevented for casual users.
+      - user-select disabled for the page except links (so links remain copyable).
+      IMPORTANT: This only raises the difficulty for casual users; it does NOT
+      make the contact impossible to find.
+    */
+
+    (function(){
+      'use strict';
+
+      // --- Basic anti-inspector guards (easily bypassed by determined users) ---
+      document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, {passive:false});
+      document.addEventListener('copy', function(e){ e.preventDefault(); }, {passive:false}); // disables ctrl+c copy
+      // block F12, Ctrl+Shift+I, Ctrl+U, Ctrl+Shift+C, Ctrl+Shift+J
+      document.addEventListener('keydown', function(e){
+        if(e.key === 'F12') { e.preventDefault(); return false; }
+        if(e.ctrlKey && e.key.toLowerCase() === 'u'){ e.preventDefault(); return false; } // view-source in many browsers
+        if(e.ctrlKey && e.shiftKey && (e.key.toLowerCase()==='i' || e.key.toLowerCase()==='c' || e.key.toLowerCase()==='j')){ e.preventDefault(); return false; }
+      }, {passive:false});
+
+      // Slightly more obfuscated base64 strings (your new contact)
+      // email: ur0unls21@mozmail.com
+      // phone: +27630502051
+      var b64Email = "dXIwdW5sczIxQG1vem1haWwuY29t"; // base64 for ur0unls21@mozmail.com
+      var b64Phone = "KzI3NjMwNTAyMDUx";           // base64 for +27630502051
+
+      // small, self-contained base64 decode
+      function b64DecodeUnicode(str) {
+        try {
+          // atob -> percent-encoding -> decodeURIComponent (works with UTF-8 safely)
+          return decodeURIComponent(Array.prototype.map.call(atob(str), function(c){
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+          }).join(''));
+        } catch (err) {
+          // fallback if decode fails
+          return atob(str);
+        }
+      }
+
+      function insertContact() {
+        var email = b64DecodeUnicode(b64Email);
+        var phone = b64DecodeUnicode(b64Phone);
+
+        // Build sanitized contact markup
+        var mailHref = 'mailto:' + email;
+        var telHref  = 'tel:' + phone.replace(/\s+/g,'');
+
+        var html = '📧 <a class="link" href="'+mailHref+'" rel="noopener noreferrer">'+email+'</a><br>' +
+                   '📱 <a class="link" href="'+telHref+'" rel="noopener noreferrer">'+formatPhone(phone)+'</a>';
+
+        var area = document.getElementById('contactArea');
+        if(area){
+          area.innerHTML = html;
+        }
+      }
+
+      function formatPhone(s){
+        // make phone easier to read e.g. "+27 63 050 2051" -> keep spacing
+        // Here we add grouping: +27 630 502 051 or simple split after country code
+        s = s.replace(/\D/g,''); // digits only
+        if(s.length > 2 && s.startsWith('27')){
+          // after +27: group into 3-3-4 if possible
+          var rest = s.slice(2);
+          if(rest.length === 9){
+            return '+27 ' + rest.slice(0,3) + ' ' + rest.slice(3,6) + ' ' + rest.slice(6);
+          }
+        }
+        return '+' + s;
+      }
+
+      // Delay insertion a tiny bit (makes it slightly less trivial to scrape)
+      setTimeout(insertContact, 450);
+
+      // Defensive: if JS is disabled, provide visible fallback message in <noscript>
+    })();
+  </script>
+
+  <noscript>
+    <style>
+      /* show a simple fallback message if JavaScript is off */
+      .card{padding:22px}
+      .contact{font-style:italic}
+    </style>
+    <div style="position:fixed;left:12px;right:12px;bottom:12px;background:#1117;border-radius:10px;padding:10px;color:#fff;text-align:center">
+      JavaScript is required to reveal contact details. Please enable JavaScript or email <strong>ur0unls21@mozmail.com</strong>.
+    </div>
+  </noscript>
+</body>
+</html>
